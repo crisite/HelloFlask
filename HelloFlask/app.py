@@ -1,13 +1,25 @@
+import os
 from flask import Flask, session, g, render_template
-from flask.helpers import url_for 
+from flask.helpers import flash, send_from_directory, url_for 
 from flask import request
 from werkzeug.utils import redirect
 from urllib.parse import urlparse
 from flask_bootstrap import Bootstrap
+from flask_wtf import FlaskForm
+from wtforms import StringField , PasswordField , BooleanField ,SubmitField , SelectField ,SelectMultipleField
+from wtforms.fields.simple import FileField
+from wtforms.validators import DataRequired, EqualTo, ValidationError
+from flask_wtf.file import file_required, file_allowed
+
 
 app = Flask(__name__)
 
 bootstrap = Bootstrap(app)
+
+@app.route('/')
+def index():
+    user = session.get('username')
+    return render_template('index.html', user=user)     
 
 @app.route('/hello')
 def hello():
@@ -48,13 +60,15 @@ app.secret_key = 'Very Hard Secret'
 def get_name():
     g.name = request.args.get('name')
 
-@app.route('/login')
+@app.route('/login/', methods=['GET', 'POST'])
 def login():
-    session['loginID'] = 'admin'
-    target = request.args.get('next')
-    if check_next(target):
-        return redirect(target)
-    return redirect(url_for('hello'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        session['username'] = username
+        flash("登录成功，%s！" % username)
+        return redirect(url_for('index'))
+    return render_template('login.html', form=form)
 
 @app.route('/logout/')
 def logout():
@@ -68,12 +82,43 @@ def needLogin1():
         user = 'needlogin1'
         return  render_template('hello.html', user = user)
     else:
-        return render_template('needlogin.html')
+        return render_template('needlogin.html')       
 
 def check_next(target):
     ref_url = urlparse(request.host_url)
     test_url = urlparse(target)
     return ref_url.netloc == test_url.netloc
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+class UploadForm(FlaskForm):
+    photo = FileField('Upload Image', validators=[file_required(), file_allowed(upload_set='.jpg')])
+    submit = SubmitField('Upload')
+
+app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+    form = UploadForm()
+    if form.validate_on_submit():
+        f = form.photo.data
+        filename = f.filename
+        f.save(os.path.join(app.config['ULOAD_PATH'], filename))
+        flash('上传图片文件成功！')
+        session['filename'] = filename        
+        return redirect(url_for('show_images'))
+    return render_template('upload.html', form=form)
+
+@app.route('/uploads/<path:filename>')
+def get_file(filename):
+    return send_from_directory(app.config['UPLOAD_PATH'], filename)
+
+@app.route('/uploaded-images')
+def show_images():
+    return render_template('uploaded.html')  
 
 if __name__  == '__main__':
     app.run(debug = True)

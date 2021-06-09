@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+
 {% block title %}My Web - Index{% endblock %}
+
 {% block page_content %}
+
 {% for message in get_flashed_messages() %}
  <div class="alert alert-warning">
      <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -8,6 +11,12 @@
  </div>
 {% endfor %}
 <div class="page-header">
-    <h1>Hello, {{ user }}!</h1>
+ <h1>Hello, {% if user %}{{ user }}{% else %}Stranger{% endif %}!</h1>
+ {% if not known %}
+ <p>你是个陌生人哦！</p>
+ {% else %}
+ <p>很高兴再次遇见你！</p>
+ {% endif %}
+
 </div>
 {% endblock %}
