@@ -3,8 +3,11 @@ from flask.helpers import url_for
 from flask import request
 from werkzeug.utils import redirect
 from urllib.parse import urlparse
+from flask_bootstrap import Bootstrap
 
 app = Flask(__name__)
+
+bootstrap = Bootstrap(app)
 
 @app.route('/hello')
 def hello():
@@ -65,7 +68,7 @@ def needLogin1():
         user = 'needlogin1'
         return  render_template('hello.html', user = user)
     else:
-        return render_templater('needlogin.html')
+        return render_template('needlogin.html')
 
 def check_next(target):
     ref_url = urlparse(request.host_url)
