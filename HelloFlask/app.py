@@ -1,7 +1,6 @@
 import os
-from flask import Flask, session, g, render_template
+from flask import Flask, session, g, render_template, request
 from flask.helpers import flash, send_from_directory, url_for 
-from flask import request
 from werkzeug.utils import redirect
 from urllib.parse import urlparse
 from flask_bootstrap import Bootstrap
@@ -13,8 +12,24 @@ from flask_wtf.file import file_required, file_allowed
 
 
 app = Flask(__name__)
-
 bootstrap = Bootstrap(app)
+app.secret = 'my hard secret'
+app.secret_key = 'Very Hard Secret'
+app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
+
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+class UploadForm(FlaskForm):
+    photo = FileField('Upload Image', validators=[file_required(), file_allowed(upload_set='.jpg')])
+    submit = SubmitField('Upload')
+
+@app.before_request
+def get_name():
+    g.name = request.args.get('name')
 
 @app.route('/')
 def index():
@@ -54,11 +69,6 @@ def test_view():
     </h1>
     """ % (query, host, path, cookie, method)
 
-app.secret_key = 'Very Hard Secret'
-
-@app.before_request
-def get_name():
-    g.name = request.args.get('name')
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -89,16 +99,6 @@ def check_next(target):
     test_url = urlparse(target)
     return ref_url.netloc == test_url.netloc
 
-class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
-
-class UploadForm(FlaskForm):
-    photo = FileField('Upload Image', validators=[file_required(), file_allowed(upload_set='.jpg')])
-    submit = SubmitField('Upload')
-
-app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
