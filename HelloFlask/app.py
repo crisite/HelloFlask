@@ -1,4 +1,4 @@
-from flask import Flask, session, g
+from flask import Flask, session, g, render_template
 from flask.helpers import url_for 
 from flask import request
 from werkzeug.utils import redirect
@@ -62,12 +62,10 @@ def logout():
 @app.route('/needlogin1/')
 def needLogin1():
     if 'loginID' in session:
-        return  '<h1>Hello , needLogin1!</h1>'
+        user = 'needlogin1'
+        return  render_template('hello.html', user = user)
     else:
-        return """
-        <h1>Login</h1>
-        <a herf = "%s% >GO TO Login </a>
-            """ % url_for('login', next = request.url)
+        return render_templater('needlogin.html')
 
 def check_next(target):
     ref_url = urlparse(request.host_url)
