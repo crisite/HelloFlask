@@ -1,18 +1,25 @@
 import os
 from flask import Flask, session, g, render_template, request
-from flask.helpers import flash, send_from_directory, url_for 
+from flask.helpers import flash, send_from_directory, url_for
+from sqlalchemy.orm import query 
 from werkzeug.utils import redirect
 from urllib.parse import urlparse
 from flask_bootstrap import Bootstrap
 from forms import LoginForm , UploadForm
-from User import Role, User
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate, migrate
+
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
 app.secret_key = 'Very Hard Secret'
 app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
-
-
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+db = SQLAlchemy(app)  
+migrate = Migrate(app,db)
 
 @app.before_request 
 def get_name():    
@@ -21,7 +28,13 @@ def get_name():
 @app.route('/')
 def index():
     user = session.get('username')
-    return render_template('index.html', user=user)     
+    isUser = User.query.filter_by(username=user).first()
+    if isUser is None:
+        session['known'] = False
+    else:
+        session['known'] = True
+    return render_template('index.html', user=user, known=session.get('known', False))
+
 
 @app.route('/hello')
 def hello():
@@ -63,6 +76,9 @@ def login():
     if form.validate_on_submit():
         username = form.username.data
         session['username'] = username
+        user = User(username = username)   #登录页面的用户保存到数据库
+        db.session.add(user)
+        db.session.commit()
         flash("登录成功，%s！" % username)
         return redirect(url_for('index'))
     return render_template('login.html', form=form)
@@ -86,7 +102,7 @@ def check_next(target):
     test_url = urlparse(target)
     return ref_url.netloc == test_url.netloc
 
-
+#图片保存加载
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     form = UploadForm()
@@ -106,6 +122,19 @@ def get_file(filename):
 @app.route('/uploaded-images')
 def show_images():
     return render_template('uploaded.html')  
+
+#数据库配置
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    users = db.relationship('User', backref='role')
+ 
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, index=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
 if __name__  == '__main__':
     app.run(debug = True)
