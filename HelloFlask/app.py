@@ -4,28 +4,14 @@ from flask.helpers import flash, send_from_directory, url_for
 from werkzeug.utils import redirect
 from urllib.parse import urlparse
 from flask_bootstrap import Bootstrap
-from flask_wtf import FlaskForm
-from wtforms import StringField , PasswordField , BooleanField ,SubmitField , SelectField ,SelectMultipleField
-from wtforms.fields.simple import FileField
-from wtforms.validators import DataRequired, EqualTo, ValidationError
-from flask_wtf.file import file_required, file_allowed
+from forms import LoginForm , UploadForm
 
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
-app.secret = 'my hard secret'
 app.secret_key = 'Very Hard Secret'
 app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
 
-
-class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
-
-class UploadForm(FlaskForm):
-    photo = FileField('Upload Image', validators=[file_required(), file_allowed(upload_set='.jpg')])
-    submit = SubmitField('Upload')
 
 @app.before_request
 def get_name():
@@ -106,7 +92,7 @@ def upload():
     if form.validate_on_submit():
         f = form.photo.data
         filename = f.filename
-        f.save(os.path.join(app.config['ULOAD_PATH'], filename))
+        f.save(os.path.join(app.config['UPLOAD_PATH'], filename))
         flash('上传图片文件成功！')
         session['filename'] = filename        
         return redirect(url_for('show_images'))
