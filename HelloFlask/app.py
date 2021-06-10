@@ -5,7 +5,7 @@ from werkzeug.utils import redirect
 from urllib.parse import urlparse
 from flask_bootstrap import Bootstrap
 from forms import LoginForm , UploadForm
-
+from User import Role, User
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
@@ -13,8 +13,9 @@ app.secret_key = 'Very Hard Secret'
 app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
 
 
-@app.before_request
-def get_name():
+
+@app.before_request 
+def get_name():    
     g.name = request.args.get('name')
 
 @app.route('/')
